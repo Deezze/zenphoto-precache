@@ -10,17 +10,18 @@ db = MySQLdb.connect(host="localhost",
                      user="zenphoto",
                      passwd="password",
                      db="zenphoto")
-domain = 'https://photos.klopnet.com/'
+table_prefix = ''
+domain = 'https://zenphoto.example.com/zenphoto/'
 cachefiles = []
 result = []
-zenphoto = '/var/www/zenphoto/'
+zenphoto = '/var/www/html/zenphoto/'
 cache = zenphoto + 'cache/'
 albums = zenphoto + 'albums/'
 
 def getCacheSizes():
     postfixes = []
     cur = db.cursor(MySQLdb.cursors.DictCursor)
-    numrows = cur.execute("SELECT * FROM plugin_storage WHERE type='cacheManager' ORDER BY aux")
+    numrows = cur.execute("SELECT * FROM " + table_prefix + "plugin_storage WHERE type='cacheManager' ORDER BY aux")
     for x in range(0, numrows):
         row = cur.fetchone()
         themeName = row['aux']
