@@ -5,6 +5,7 @@ import sys
 import MySQLdb
 import phpserialize
 import requests
+import imghdr
 
 db = MySQLdb.connect(host="localhost",
                      user="zenphoto",
@@ -49,7 +50,7 @@ def getCacheSizes():
     return postfixes
 
 def getCachedFileName(original, postfix):
-        cachedFile = original.replace(albums, cache, 1).replace('.jpg', '', 1).replace('.JPG', '', 1) + postfix + '.jpg'
+        cachedFile = os.path.splitext(original.replace(albums, cache, 1))[0] + postfix + '.jpg'
         return cachedFile
 
 def getUri(filename):
@@ -64,7 +65,7 @@ for root, subFolders, files in os.walk(albums):
     for file in files:
         print('scanning (',end="")
         albumfile = os.path.join(root, file)
-        if (albumfile.find('jpg')>=0 or albumfile.find('JPG')>=0):
+        if (imghdr.what(albumfile) != None):
             for postfix in cache_sizes:
                 if not os.path.exists(getCachedFileName(albumfile, postfix)):
                     print('\033[1;31;40m✘\033[0;37;40m',end="")
