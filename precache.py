@@ -9,16 +9,16 @@ import imghdr
 import argparse
 import yaml
 
-parser = argparse.ArgumentParser(description='Cache all images in the zenphoto gallery.')
-parser.add_argument('-t', '--test', action='store_true',
-                   help='only test what needs to be cached, don\'t actually do it')
-parser.add_argument('-c', '--config', action='store_true',
-                   help='only test what needs to be cached, don\'t actually do it')
+parser = argparse.ArgumentParser(description='Utility to cache all images in the zenphoto gallery.')
+parser.add_argument('-p', '--pretend', action='store_true',
+                   help='only print what needs to be cached')
+parser.add_argument('-c', '--config', type=str, default='/etc/zenphoto.yml',
+                   help='Use a specific config file')
+parser.add_argument('-t', '--themes', nargs='+', default=[], type=str,
+                    help='Specify additional themes to grab cache sizes from')
 
 args = parser.parse_args()
-
-
-with open("/etc/zenphoto.yml", 'r') as ymlfile:
+with open(args.config, 'r') as ymlfile:
     cfg = yaml.load(ymlfile)
 
 db = MySQLdb.connect(host=cfg['mysql_host'],
@@ -41,9 +41,11 @@ def getCurrentTheme():
 
 def getCacheSizes():
     postfixes = []
+    themes = args.themes
     cur = db.cursor(MySQLdb.cursors.DictCursor)
     numrows = cur.execute("SELECT aux, data FROM " + table_prefix + "plugin_storage WHERE type='cacheManager' ORDER BY aux")
-    current_theme = getCurrentTheme()
+    themes.append(getCurrentTheme())
+    themes.append('admin')
     for x in range(0, numrows):
         row = cur.fetchone()
         themeName = row['aux']
@@ -58,9 +60,9 @@ def getCacheSizes():
             ('_thumb' if data['thumb'] else '') +
             ('_' + str(data['wmk']) if data['wmk'] else '') +
             ('_' + str(data['gray']) if data['gray'] else ''))
-        if(themeName == current_theme or themeName == 'admin'):
-            print(themeName + ': ' + postfix_string)
+        if(themeName in themes):
             postfixes.append(postfix_string)
+    print('will cache ' + str(len(postfixes)) + ' sizes for \'' + '\', \''.join(themes) + '\'...')
     return postfixes
 
 def getCachedFileName(original, postfix):
@@ -73,13 +75,15 @@ def getUri(filename):
 
 # Add photos to the list if no cache exists
 
-# get cache sizes once
+image_files = 0
 cache_sizes = getCacheSizes()
+print('Scanning for image files in ' + albums + '...')
 for root, subFolders, files in os.walk(albums):
     for file in files:
-        print('scanning (',end="")
+        print('Scanning (',end="")
         albumfile = os.path.join(root, file)
         if (imghdr.what(albumfile) != None):
+            image_files+=1
             for postfix in cache_sizes:
                 if not os.path.exists(getCachedFileName(albumfile, postfix)):
                     print('\033[1;31;40m✘\033[0;37;40m',end="")
@@ -89,7 +93,9 @@ for root, subFolders, files in os.walk(albums):
         else:
             print('\033[1;33;40mSKIPPED\033[0;37;40m',end="")
         print(") " + file)
-if(not args.t):
+
+print('Will create ' + str(len(cachefiles)) + ' new caches for ' + str(image_files) + ' images...')
+if(not args.pretend):
     for uncachedfile in cachefiles:
         #just get the image from zenphoto, that will cause the cached image to be generated
         print("Caching " + uncachedfile)

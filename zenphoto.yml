@@ -1,0 +1,7 @@
+mysql_host: 'localhost'
+mysql_user: 'zenphoto'
+mysql_password: 'password'
+database_name: 'zenphoto'
+table_prefix: ''
+zenphoto_url: 'http://zenphoto.example.com/'
+install_folder: '/var/www/html/zenphoto/'
