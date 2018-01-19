@@ -6,18 +6,32 @@ import MySQLdb
 import phpserialize
 import requests
 import imghdr
+import argparse
+import yaml
 
-db = MySQLdb.connect(host="localhost",
-                     user="zenphoto",
-                     passwd="password",
-                     db="zenphoto")
-table_prefix = '' #make sure to include an underscore if using this
-domain = 'https://zenphoto.example.com/zenphoto/'
-cachefiles = []
-result = []
-zenphoto = '/var/www/html/zenphoto/'
+parser = argparse.ArgumentParser(description='Cache all images in the zenphoto gallery.')
+parser.add_argument('-t', '--test', action='store_true',
+                   help='only test what needs to be cached, don\'t actually do it')
+parser.add_argument('-c', '--config', action='store_true',
+                   help='only test what needs to be cached, don\'t actually do it')
+
+args = parser.parse_args()
+
+
+with open("/etc/zenphoto.yml", 'r') as ymlfile:
+    cfg = yaml.load(ymlfile)
+
+db = MySQLdb.connect(host=cfg['mysql_host'],
+                     user=cfg['mysql_user'],
+                     passwd=cfg['mysql_password'],
+                     db=cfg['database_name'])
+table_prefix = cfg['table_prefix'] #make sure to include an underscore if using this
+domain = cfg['zenphoto_url']
+zenphoto = cfg['install_folder']
 cache = zenphoto + 'cache/'
 albums = zenphoto + 'albums/'
+cachefiles = []
+result = []
 
 def getCurrentTheme():
     cur = db.cursor(MySQLdb.cursors.DictCursor)
@@ -75,8 +89,10 @@ for root, subFolders, files in os.walk(albums):
         else:
             print('\033[1;33;40mSKIPPED\033[0;37;40m',end="")
         print(") " + file)
-
-for uncachedfile in cachefiles:
-    #just get the image from zenphoto, that will cause the cached image to be generated
-    print("caching " + uncachedfile)
-    requests.get(getUri(uncachedfile))
+if(not args.t):
+    for uncachedfile in cachefiles:
+        #just get the image from zenphoto, that will cause the cached image to be generated
+        print("Caching " + uncachedfile)
+        requests.get(getUri(uncachedfile))
+else:
+    print('Skipping caching!')
