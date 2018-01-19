@@ -10,7 +10,7 @@ db = MySQLdb.connect(host="localhost",
                      user="zenphoto",
                      passwd="password",
                      db="zenphoto")
-table_prefix = ''
+table_prefix = '' #make sure to include an underscore if using this
 domain = 'https://zenphoto.example.com/zenphoto/'
 cachefiles = []
 result = []
@@ -18,10 +18,17 @@ zenphoto = '/var/www/html/zenphoto/'
 cache = zenphoto + 'cache/'
 albums = zenphoto + 'albums/'
 
+def getCurrentTheme():
+    cur = db.cursor(MySQLdb.cursors.DictCursor)
+    options = cur.execute("SELECT value FROM " + table_prefix + "options WHERE name='gallery_data'")
+    data = phpserialize.loads(cur.fetchone()['value'].encode(), decode_strings=True)
+    return data['current_theme']
+
 def getCacheSizes():
     postfixes = []
     cur = db.cursor(MySQLdb.cursors.DictCursor)
-    numrows = cur.execute("SELECT * FROM " + table_prefix + "plugin_storage WHERE type='cacheManager' ORDER BY aux")
+    numrows = cur.execute("SELECT aux, data FROM " + table_prefix + "plugin_storage WHERE type='cacheManager' ORDER BY aux")
+    current_theme = getCurrentTheme()
     for x in range(0, numrows):
         row = cur.fetchone()
         themeName = row['aux']
@@ -36,7 +43,9 @@ def getCacheSizes():
             ('_thumb' if data['thumb'] else '') +
             ('_' + str(data['wmk']) if data['wmk'] else '') +
             ('_' + str(data['gray']) if data['gray'] else ''))
-        postfixes.append(postfix_string)
+        if(themeName == current_theme or themeName == 'admin'):
+            print(themeName + ': ' + postfix_string)
+            postfixes.append(postfix_string)
     return postfixes
 
 def getCachedFileName(original, postfix):
@@ -48,12 +57,15 @@ def getUri(filename):
         return uri
 
 # Add photos to the list if no cache exists
+
+# get cache sizes once
+cache_sizes = getCacheSizes()
 for root, subFolders, files in os.walk(albums):
     for file in files:
         print('scanning (',end="")
         albumfile = os.path.join(root, file)
         if (albumfile.find('jpg')>=0 or albumfile.find('JPG')>=0):
-            for postfix in getCacheSizes():
+            for postfix in cache_sizes:
                 if not os.path.exists(getCachedFileName(albumfile, postfix)):
                     print('\033[1;31;40m✘\033[0;37;40m',end="")
                     cachefiles.append(getCachedFileName(albumfile, postfix))
