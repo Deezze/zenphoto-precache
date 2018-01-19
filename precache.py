@@ -15,7 +15,9 @@ parser.add_argument('-p', '--pretend', action='store_true',
 parser.add_argument('-c', '--config', type=str, default='/etc/zenphoto.yml',
                    help='Use a specific config file')
 parser.add_argument('-t', '--themes', nargs='+', default=[], type=str,
-                    help='Specify additional themes to grab cache sizes from')
+                    help='Specify additional themes to grab cache sizes from'),
+parser.add_argument('-v', '--verbose', action='store_true',
+                    help='Show more information about what is being done'),
 
 args = parser.parse_args()
 with open(args.config, 'r') as ymlfile:
@@ -77,24 +79,28 @@ def getUri(filename):
 
 image_files = 0
 cache_sizes = getCacheSizes()
-print('Scanning for image files in ' + albums + '...')
+already_cached = 0
+non_image_files=0
+print('Scanning for image files in \'' + albums + '\'...')
 for root, subFolders, files in os.walk(albums):
     for file in files:
-        print('Scanning (',end="")
+        if args.verbose: print('Scanning (',end="")
         albumfile = os.path.join(root, file)
         if (imghdr.what(albumfile) != None):
             image_files+=1
             for postfix in cache_sizes:
                 if not os.path.exists(getCachedFileName(albumfile, postfix)):
-                    print('\033[1;31;40m✘\033[0;37;40m',end="")
+                    if args.verbose: print('\033[1;31;40m✘\033[0;37;40m',end="")
                     cachefiles.append(getCachedFileName(albumfile, postfix))
                 else:
-                    print('\033[1;32;40m✔\033[0;37;40m',end="")
+                    already_cached+=1
+                    if args.verbose: print('\033[1;32;40m✔\033[0;37;40m',end="")
         else:
-            print('\033[1;33;40mSKIPPED\033[0;37;40m',end="")
-        print(") " + file)
+            if args.verbose: print('\033[1;33;40mSKIPPED\033[0;37;40m',end="")
+            non_image_files+=1
+        if args.verbose: print(") " + file)
 
-print('Will create ' + str(len(cachefiles)) + ' new caches for ' + str(image_files) + ' images...')
+print('Will create ' + str(len(cachefiles)) + ' new caches (' + str(already_cached) + ' already cached) for ' + str(image_files) + ' images (' + str(non_image_files) + ' non-image files skipped)...')
 if(not args.pretend):
     for uncachedfile in cachefiles:
         #just get the image from zenphoto, that will cause the cached image to be generated
