@@ -1,4 +1,8 @@
-#!/usr/bin/python3
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+#python 2/3 compatibility
+from __future__ import print_function
 
 import os
 import sys
