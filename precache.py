@@ -93,12 +93,21 @@ for root, subFolders, files in os.walk(albums):
         if (imghdr.what(albumfile) != None):
             image_files+=1
             for postfix in cache_sizes:
-                if not os.path.exists(getCachedFileName(albumfile, postfix)):
+                cachefile = getCachedFileName(albumfile, postfix)
+                if not os.path.exists(cachefile):
                     if args.verbose: print('\033[1;31;40m✘\033[0;37;40m',end="")
-                    cachefiles.append(getCachedFileName(albumfile, postfix))
+                    cachefiles.append(cachefile)
                 else:
-                    already_cached+=1
-                    if args.verbose: print('\033[1;32;40m✔\033[0;37;40m',end="")
+                    albumfiletime = os.path.getmtime(albumfile)
+                    cachefiletime = os.path.getmtime(cachefile)
+                    if (cachefiletime < albumfiletime):
+                        #remove the cachefile if it's older than the albumfile
+                        if(not args.pretend): os.remove(cachefile)
+                        if args.verbose: print('\033[1;33;40m⟲\033[0;37;40m',end="")
+                        cachefiles.append(cachefile)
+                    else:
+                        already_cached+=1
+                        if args.verbose: print('\033[1;32;40m✔\033[0;37;40m',end="")
         else:
             if args.verbose: print('\033[1;33;40mSKIPPED\033[0;37;40m',end="")
             non_image_files+=1
