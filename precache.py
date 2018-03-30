@@ -101,9 +101,8 @@ for root, subFolders, files in os.walk(albums):
                     albumfiletime = os.path.getmtime(albumfile)
                     cachefiletime = os.path.getmtime(cachefile)
                     if (cachefiletime < albumfiletime):
-                        #remove the cachefile if it's older than the albumfile
-                        if(not args.pretend): os.remove(cachefile)
-                        if args.verbose: print('\033[1;33;40m⟲\033[0;37;40m',end="")
+                        #re-cache if cachefile if it's older than the albumfile
+                        if args.verbose: print('\033[1;33;40m𝝙\033[0;37;40m',end="")
                         cachefiles.append(cachefile)
                     else:
                         already_cached+=1
@@ -115,9 +114,13 @@ for root, subFolders, files in os.walk(albums):
 
 print('Will create ' + str(len(cachefiles)) + ' new caches (' + str(already_cached) + ' already cached) for ' + str(image_files) + ' images (' + str(non_image_files) + ' non-image files skipped)...')
 if(not args.pretend):
-    for uncachedfile in cachefiles:
+    for cachefile in cachefiles:
+        #delete the file if it already exists
+        if(os.path.exists(cachefile)):
+            print("Refreshing " + cachefile)
+            os.remove(cachefile)
         #just get the image from zenphoto, that will cause the cached image to be generated
-        print("Caching " + uncachedfile)
-        requests.get(getUri(uncachedfile))
+        print("Caching " + cachefile)
+        requests.get(getUri(cachefile))
 else:
     print('Skipping caching!')
