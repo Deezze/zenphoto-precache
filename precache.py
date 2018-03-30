@@ -84,7 +84,8 @@ def getUri(filename):
 image_files = 0
 cache_sizes = getCacheSizes()
 already_cached = 0
-non_image_files=0
+non_image_files = 0
+refresh_cached = 0
 print('Scanning for image files in \'' + albums + '\'...')
 for root, subFolders, files in os.walk(albums):
     for file in files:
@@ -104,6 +105,7 @@ for root, subFolders, files in os.walk(albums):
                         #re-cache if cachefile if it's older than the albumfile
                         if args.verbose: print('\033[1;33;40m𝝙\033[0;37;40m',end="")
                         cachefiles.append(cachefile)
+                        refresh_cached+=1
                     else:
                         already_cached+=1
                         if args.verbose: print('\033[1;32;40m✔\033[0;37;40m',end="")
@@ -112,7 +114,7 @@ for root, subFolders, files in os.walk(albums):
             non_image_files+=1
         if args.verbose: print(") " + file)
 
-print('Will create ' + str(len(cachefiles)) + ' new caches (' + str(already_cached) + ' already cached) for ' + str(image_files) + ' images (' + str(non_image_files) + ' non-image files skipped)...')
+print('Will create ' + str(len(cachefiles) - refresh_cached) + ' new caches and refresh ' + refresh_cached + 'existing caches (' + str(already_cached) + ' already cached) for ' + str(image_files) + ' images (' + str(non_image_files) + ' non-image files skipped)...'
 if(not args.pretend):
     for cachefile in cachefiles:
         #delete the file if it already exists
